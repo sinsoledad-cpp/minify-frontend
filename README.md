@@ -48,3 +48,4 @@ npm run lint
 ```
 
 npm install element-plus axios
+npm install pinia-plugin-persistedstate

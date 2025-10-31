@@ -1,0 +1,30 @@
+/**
+ * 后端统一响应体 (匹配 go-zero 和你的 response.go)
+ * T 是泛型，代表 data 字段的具体类型
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface ApiResponse<T = any> {
+  code: number // 业务码
+  msg: string // 消息
+  data: T // 数据
+}
+
+// --- 匹配 user-api 的 DTO ---
+export interface LoginResponse {
+  accessToken: string
+  accessExpire: number
+}
+
+// (这个 UserInfo 我们已经在 user.ts 定义了，这里可以省略)
+
+// --- 匹配 shortener-api 的 DTO ---
+// (我们先定义最基础的，其他的稍后添加)
+export interface Link {
+  id: number
+  shortCode: string
+  originalUrl: string
+  // visitCount: number (你已经删除了)
+  isActive: boolean
+  expirationTime?: string
+  createdAt: string
+}

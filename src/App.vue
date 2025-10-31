@@ -4,7 +4,7 @@ import { RouterView } from 'vue-router'
 </script>
 
 <template>
-  <!-- “路由出口”或“占位符”* -->
+  <!-- “路由出口”或“占位符”*  根据你浏览器当前的 URL 地址，自动显示对应的页面组件 -->
   <RouterView />
 </template>
 <style>
