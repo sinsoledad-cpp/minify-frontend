@@ -46,3 +46,5 @@ npm run build
 ```sh
 npm run lint
 ```
+
+npm install element-plus axios
