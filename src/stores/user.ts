@@ -3,16 +3,7 @@ import { defineStore } from 'pinia'
 
 // (新增) 导入路由，用于登出后跳转
 import router from '@/router'
-
-// (新增) 定义我们将从 API 获取的用户信息类型
-// 这对应你后端的 UserInfoResponse
-export interface UserInfo {
-  id: number
-  username: string
-  email: string
-  role: string
-  created_at: string
-}
+import type { UserInfo } from '@/services/api-types.ts'
 
 // 定义 Store
 // 'user' 是这个 store 的唯一ID

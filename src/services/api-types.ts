@@ -52,3 +52,27 @@ export interface ListLinksResponse {
   links: Link[] // 后端 (go) 的 []Link
   total: number // 后端 (go) 的 int64
 }
+/**
+ * 匹配 user.api 的 ListUsersRequest
+ */
+export interface ListUsersParams {
+  page: number
+  pageSize: number
+}
+// (新增) 定义我们将从 API 获取的用户信息类型
+// 这对应你后端的 UserInfoResponse
+export interface UserInfo {
+  id: number
+  username: string
+  email: string
+  role: string
+  created_at: string
+}
+/**
+ * 匹配 user.api 的 ListUsersResponse
+ * (我们复用在 user.ts 中已定义的 UserInfo 类型)
+ */
+export interface ListUsersResponse {
+  users: UserInfo[]
+  total: number
+}

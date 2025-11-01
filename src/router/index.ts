@@ -6,6 +6,8 @@ import MainLayout from '@/layouts/MainLayout.vue'
 import LoginView from '@/views/LoginView.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import LinksView from '@/views/LinksView.vue'
+import UsersView from '@/views/admin/UsersView.vue'
+import { ElMessage } from 'element-plus'
 // 创建路由实例
 const router = createRouter({
   // 告诉路由使用 H5 历史模式
@@ -39,8 +41,17 @@ const router = createRouter({
         {
           path: 'links', // 对应的完整 URL 是 /links
           name: 'links',
-          component: LinksView // <--- (新增) 指定组件
-        }
+          component: LinksView, // <--- (新增) 指定组件
+        },
+        {
+          path: 'admin/users', // 对应的完整 URL 是 /admin/users
+          name: 'admin-users',
+          component: UsersView, // <--- (新增) 指定组件
+          // (可选) 路由元信息，用于路由守卫
+          meta: {
+            requiresAdmin: true,
+          },
+        },
         // ... 稍后我们会在这里添加 /links, /admin/users 等
       ],
     },
@@ -70,6 +81,12 @@ router.beforeEach((to, from, next) => {
     return next('/dashboard')
   }
 
+  // 场景 E: 检查是否需要管理员权限
+  if (to.meta.requiresAdmin && !userStore.isAdmin) {
+    // 访问管理员页面，但“不是管理员” -> 重定向到仪表盘
+    ElMessage.error('您没有权限访问该页面')
+    return next('/dashboard')
+  }
   // 场景 C: 访问受保护页面 -> 已登录 -> 放行
   // 场景 D: 访问公共页面 -> 未登录 -> 放行
   next()

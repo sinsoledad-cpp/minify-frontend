@@ -55,9 +55,7 @@ const handleLogout = () => {
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item command="logout">
-                登出
-              </el-dropdown-item>
+              <el-dropdown-item command="logout"> 登出 </el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -76,9 +74,9 @@ const handleLogout = () => {
             <span>链接管理</span>
           </el-menu-item>
 
-          <el-menu-item v-if="userStore.isAdmin" index="/admin/users" disabled>
-            <el-icon><Link /></el-icon>
-            <span>用户管理 (待办)</span>
+          <el-menu-item v-if="userStore.isAdmin" index="/admin/users">
+            <el-icon><UserFilled /></el-icon>
+            <span>用户管理</span>
           </el-menu-item>
         </el-menu>
       </el-aside>
