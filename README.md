@@ -49,3 +49,21 @@ npm run lint
 
 npm install element-plus axios
 npm install pinia-plugin-persistedstate
+npm install @element-plus/icons-vue
+
+
+
+
+
+
+
+
+npm install @element-plus/icons-vue
+
+
+
+
+
+
+
+
