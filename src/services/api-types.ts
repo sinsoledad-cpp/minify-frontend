@@ -76,3 +76,9 @@ export interface ListUsersResponse {
   users: UserInfo[]
   total: number
 }
+
+export interface UpdateLinkRequest {
+  originalUrl?: string // ? 表示可选
+  isActive?: boolean
+  expirationTime?: string | null // string (ISO 8601) 或 null (设为永不过期)
+}

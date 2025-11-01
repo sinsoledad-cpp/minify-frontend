@@ -9,12 +9,27 @@ import {
   ElLink,
   ElButton,
   // ElIcon,
-  ElMessageBox, // (新增) 导入“消息弹框”
-  ElMessage, // (新增) 导入“消息提示”
+  ElMessageBox,
+  ElMessage,
+  // (新增) -----------------
+  ElDialog,
+  ElForm,
+  ElFormItem,
+  ElInput,
+  ElSwitch,
+  ElDatePicker,
+  type FormInstance,
+  // (新增结束) ---------------
 } from 'element-plus'
 import { Edit, Delete } from '@element-plus/icons-vue'
 import apiService from '@/services/api'
-import type { ApiResponse, Link, ListLinksResponse, ListLinksParams } from '@/services/api-types'
+import type {
+  ApiResponse,
+  Link,
+  ListLinksResponse,
+  ListLinksParams,
+  UpdateLinkRequest, // (新增)
+} from '@/services/api-types'
 import { formatTime } from '@/utils/time'
 
 // --- 状态定义 (无变化) ---
@@ -24,20 +39,30 @@ const isLoading = ref(true)
 const listState = reactive<ListLinksParams>({
   page: 1,
   pageSize: 10,
-  status: 'active', // 默认只看“有效”的链接
+  status: 'active',
 })
 
-// --- 生命周期 ---
+// (新增) --- 编辑表单状态 ---
+const isEditDialogVisible = ref(false) // 控制“编辑”对话框是否显示
+const editFormRef = ref<FormInstance>() // “编辑”表单的引用
+const editForm = reactive({
+  // 我们需要 shortCode 来知道要更新哪个链接 (e.g., /links/abc)
+  shortCode: '',
+  // 以下是 UpdateLinkRequest 中定义的字段
+  originalUrl: '',
+  isActive: true,
+  expirationTime: null as Date | null, // (关键) ElDatePicker 需要 Date 对象，而不是字符串
+})
+// (新增结束) -----------------
 
-// onMounted 钩子：当组件第一次被渲染到屏幕上时，自动执行
+// --- 生命周期 (无变化) ---
 onMounted(() => {
   fetchLinks()
 })
 
-// --- API 调用 ---
-
-// 定义获取链接列表的函数
+// --- API 调用 (无变化) ---
 const fetchLinks = async () => {
+  // ... (此函数内容保持不变) ...
   isLoading.value = true
   try {
     const response = await apiService.get<ApiResponse<ListLinksResponse>>('/links', {
@@ -67,10 +92,80 @@ const handleSizeChange = (newSize: number) => {
 }
 
 // (新增) --------------------------------------------
-// 处理删除按钮点击事件
+// 处理“编辑”按钮点击
+const handleEdit = (link: Link) => {
+  // 1. 把当前行(link)的数据“复制”到 editForm 中
+  //    (注意：我们必须复制，而不是直接引用，否则会“污染”表格数据)
+  editForm.shortCode = link.shortCode
+  editForm.originalUrl = link.originalUrl
+  editForm.isActive = link.isActive
+  // 2. (关键) 将后端返回的 expirationTime 字符串 转换为 Date 对象
+  if (link.expirationTime) {
+    editForm.expirationTime = new Date(link.expirationTime)
+  } else {
+    editForm.expirationTime = null
+  }
+
+  // 3. 打开“编辑”对话框
+  isEditDialogVisible.value = true
+}
+
+// (新增) 提交“编辑”表单
+const submitEdit = async (formEl: FormInstance | undefined) => {
+  if (!formEl) return
+
+  // 1. 校验表单
+  await formEl.validate(async (valid) => {
+    if (valid) {
+      // 2. 准备要发送到后端的数据 (UpdateLinkRequest)
+      const updateData: UpdateLinkRequest = {
+        originalUrl: editForm.originalUrl,
+        isActive: editForm.isActive,
+        // (关键) 将 Date 对象 转换回 后端需要的 ISO 字符串
+        // 如果用户清空了日期 (null)，就发送 null
+        expirationTime: editForm.expirationTime ? editForm.expirationTime.toISOString() : null,
+      }
+
+      // 3. 从 shortCode (e.g., "http://.../abc") 中提取 code ("abc")
+      const code = editForm.shortCode.split('/').pop() || ''
+      if (!code) {
+        ElMessage.error('无法获取链接代码')
+        return
+      }
+
+      isLoading.value = true // (可选) 在保存时也显示加载状态
+
+      try {
+        // 4. (关键) 调用 PUT /links/:code 接口
+        await apiService.put(`/links/${code}`, updateData)
+
+        // 5. 成功后的收尾工作
+        isEditDialogVisible.value = false // (a) 关闭对话框
+        ElMessage.success('更新成功') // (b) 提示成功
+        fetchLinks() // (c) 刷新表格！
+      } catch (error) {
+        // (api.ts 拦截器 会自动弹窗)
+        console.error('更新失败:', error)
+        isLoading.value = false // 确保失败时停止加载
+      }
+    }
+  })
+}
+
+// (新增) 取消“编辑”
+const handleCancelEdit = () => {
+  isEditDialogVisible.value = false
+  // (可选) 清理表单验证状态
+  if (editFormRef.value) {
+    editFormRef.value.clearValidate()
+  }
+}
+// (新增结束) -----------------------------------------
+
+// 处理“删除”按钮点击 (无变化)
 const handleDelete = async (link: Link) => {
+  // ... (此函数内容保持不变) ...
   try {
-    // 1. (关键) 弹出确认框，等待用户确认
     await ElMessageBox.confirm(
       `确定要删除短链接 ${link.shortCode.replace('http://', '').replace('https://', '')} 吗？
        此操作将进行软删除，但链接将无法访问。`,
@@ -78,33 +173,18 @@ const handleDelete = async (link: Link) => {
       {
         confirmButtonText: '确定删除',
         cancelButtonText: '取消',
-        type: 'warning', // 显示一个警告图标
+        type: 'warning',
       },
     )
-
-    // 2. (如果用户点击了“确定”) - 调用后端的 DELETE 接口
-    //    后端 API 是: delete /links/:code
-    //    我们需要从 link.shortCode (e.g., "http://127.0.0.1:8887/abc") 中提取 'abc'
     const code = link.shortCode.split('/').pop() || ''
-
-    // (可选) 你可以在删除时也显示加载状态
     isLoading.value = true
-
-    // 3. (关键) apiService.delete()。拦截器会自动处理 200 OK
-    //    (后端软删除成功会返回 200 OK)
     await apiService.delete(`/links/${code}`)
-
-    // 4. (关键) 删除成功，给用户提示
     ElMessage({
       type: 'success',
       message: '删除成功',
     })
-
-    // 5. (关键) 重新获取链接列表，表格将自动更新
-    //    (如果当前页是最后一页且数据已空，可能需要调整页码，这里先做简单刷新)
-    fetchLinks() // fetchLinks 内部会设置 isLoading.value = false
+    fetchLinks()
   } catch (error) {
-    // 1. 如果 error 是 'cancel'，说明用户点击了“取消”
     if (error === 'cancel') {
       ElMessage({
         type: 'info',
@@ -112,12 +192,10 @@ const handleDelete = async (link: Link) => {
       })
       return
     }
-    // 2. 如果是其他错误 (比如 API 500)，api.ts 拦截器 会自动弹窗
     console.error('删除失败:', error)
-    isLoading.value = false // 确保 API 失败时也停止加载
+    isLoading.value = false
   }
 }
-// (新增结束) -----------------------------------------
 </script>
 
 <template>
@@ -134,16 +212,13 @@ const handleDelete = async (link: Link) => {
           </el-link>
         </template>
       </el-table-column>
-
-      <el-table-column prop="originalUrl" label="原始链接" show-overflow-tooltip> </el-table-column>
-
+      <el-table-column prop="originalUrl" label="原始链接" show-overflow-tooltip />
       <el-table-column label="状态" width="100" align="center">
         <template #default="scope">
           <el-tag v-if="scope.row.isActive" type="success">有效</el-tag>
           <el-tag v-else type="info">禁用</el-tag>
         </template>
       </el-table-column>
-
       <el-table-column label="创建时间" width="180" align="center">
         <template #default="scope">
           {{ formatTime(scope.row.createdAt) }}
@@ -152,7 +227,9 @@ const handleDelete = async (link: Link) => {
 
       <el-table-column label="操作" width="150" align="center" fixed="right">
         <template #default="scope">
-          <el-button link type="primary" :icon="Edit" disabled> 编辑 </el-button>
+          <el-button link type="primary" :icon="Edit" @click="handleEdit(scope.row)">
+            编辑
+          </el-button>
 
           <el-button link type="danger" :icon="Delete" @click="handleDelete(scope.row)">
             删除
@@ -174,15 +251,60 @@ const handleDelete = async (link: Link) => {
       @size-change="handleSizeChange"
     />
   </el-card>
+
+  <el-dialog
+    v-model="isEditDialogVisible"
+    title="编辑链接"
+    width="600"
+    :close-on-click-modal="false"
+  >
+    <el-form
+      v-if="isEditDialogVisible"
+      ref="editFormRef"
+      :model="editForm"
+      label-position="top"
+      label-width="auto"
+    >
+      <el-form-item
+        label="原始链接 (Original URL)"
+        prop="originalUrl"
+        :rules="[{ required: true, message: '请输入原始链接', trigger: 'blur' }]"
+      >
+        <el-input v-model="editForm.originalUrl" placeholder="https://..." />
+      </el-form-item>
+
+      <el-form-item label="过期时间 (Expiration Time)" prop="expirationTime">
+        <el-date-picker
+          v-model="editForm.expirationTime"
+          type="datetime"
+          placeholder="留空表示永不过期"
+          clearable
+          style="width: 100%"
+        />
+      </el-form-item>
+
+      <el-form-item label="是否激活 (Is Active)" prop="isActive">
+        <el-switch v-model="editForm.isActive" />
+      </el-form-item>
+    </el-form>
+
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="handleCancelEdit">取 消</el-button>
+        <el-button type="primary" @click="submitEdit(editFormRef)"> 保 存 </el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 
 <style scoped>
+/* (样式无变化) */
 .filter-bar {
   margin-bottom: 20px;
 }
 .pagination-bar {
-  display: flex; /* 让分页器默认右对齐 (flex 布局的默认效果) */
-  justify-content: flex-end; /* 右对齐 */
+  display: flex;
+  justify-content: flex-end;
   margin-top: 20px;
 }
 </style>
