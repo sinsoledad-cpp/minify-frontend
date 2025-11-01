@@ -28,3 +28,10 @@ export interface Link {
   expirationTime?: string
   createdAt: string
 }
+
+// --- (新增) 匹配 shortener-api 的 GetDashboardResponse ---
+export interface DashboardData {
+  totalLinks: number
+  totalClicks: number
+  topLink: Link | null // Go 的 *Link (指针) 对应 TypeScript 的 Link | null
+}
