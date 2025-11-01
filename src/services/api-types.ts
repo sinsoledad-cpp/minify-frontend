@@ -35,3 +35,20 @@ export interface DashboardData {
   totalClicks: number
   topLink: Link | null // Go 的 *Link (指针) 对应 TypeScript 的 Link | null
 }
+/**
+ * 匹配 shortener.api 的 ListLinksRequest
+ * (我们将把它作为 API 请求的 'params' 对象)
+ */
+export interface ListLinksParams {
+  page: number
+  pageSize: number
+  status: string // "active", "expired", "inactive", "all"
+}
+
+/**
+ * 匹配 shortener.api 的 ListLinksResponse
+ */
+export interface ListLinksResponse {
+  links: Link[] // 后端 (go) 的 []Link
+  total: number // 后端 (go) 的 int64
+}

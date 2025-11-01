@@ -71,9 +71,9 @@ const handleLogout = () => {
             <el-icon><House /></el-icon>
             <span>仪表盘</span>
           </el-menu-item>
-          <el-menu-item index="/links" disabled>
+          <el-menu-item index="/links">
             <el-icon><Link /></el-icon>
-            <span>链接管理 (待办)</span>
+            <span>链接管理</span>
           </el-menu-item>
 
           <el-menu-item v-if="userStore.isAdmin" index="/admin/users" disabled>

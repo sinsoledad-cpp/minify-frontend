@@ -5,6 +5,7 @@ import { useUserStore } from '@/stores/user'
 import MainLayout from '@/layouts/MainLayout.vue'
 import LoginView from '@/views/LoginView.vue'
 import DashboardView from '@/views/DashboardView.vue'
+import LinksView from '@/views/LinksView.vue'
 // 创建路由实例
 const router = createRouter({
   // 告诉路由使用 H5 历史模式
@@ -35,6 +36,11 @@ const router = createRouter({
           name: 'dashboard',
           component: DashboardView,
         },
+        {
+          path: 'links', // 对应的完整 URL 是 /links
+          name: 'links',
+          component: LinksView // <--- (新增) 指定组件
+        }
         // ... 稍后我们会在这里添加 /links, /admin/users 等
       ],
     },
