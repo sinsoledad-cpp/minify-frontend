@@ -138,9 +138,9 @@ const handleRegister = async (formEl: FormInstance | undefined) => {
     <div class="login-box">
       <h1 class="title">Minify 短链接</h1>
 
-      <el_tabs v-model="activeTab" class="login-tabs" stretch>
-        <el_tab_pane label="登录" name="login">
-          <el_form
+      <el-tabs v-model="activeTab" class="login-tabs" stretch>
+        <el-tab-pane label="登录" name="login">
+          <el-form
             ref="loginFormRef"
             :model="loginForm"
             :rules="loginRules"
@@ -148,37 +148,37 @@ const handleRegister = async (formEl: FormInstance | undefined) => {
             size="large"
             @keyup.enter="handleLogin(loginFormRef)"
           >
-            <el_form_item label="用户名或邮箱" prop="username">
-              <el_input
+            <el-form-item label="用户名或邮箱" prop="username">
+              <el-input
                 v-model="loginForm.username"
                 placeholder="Username or Email"
                 :prefix-icon="User"
               />
-            </el_form_item>
-            <el_form_item label="密码" prop="password">
-              <el_input
+            </el-form-item>
+            <el-form-item label="密码" prop="password">
+              <el-input
                 v-model="loginForm.password"
                 type="password"
                 placeholder="Password"
                 show-password
                 :prefix-icon="Lock"
               />
-            </el_form_item>
-            <el_form_item>
-              <el_button
+            </el-form-item>
+            <el-form-item>
+              <el-button
                 type="primary"
                 class="login-button"
                 :loading="isLoading"
                 @click="handleLogin(loginFormRef)"
               >
                 登 录
-              </el_button>
-            </el_form_item>
-          </el_form>
-        </el_tab_pane>
+              </el-button>
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
 
-        <el_tab_pane label="注册" name="register">
-          <el_form
+        <el-tab-pane label="注册" name="register">
+          <el-form
             ref="registerFormRef"
             :model="registerForm"
             :rules="registerRules"
@@ -186,38 +186,38 @@ const handleRegister = async (formEl: FormInstance | undefined) => {
             size="large"
             @keyup.enter="handleRegister(registerFormRef)"
           >
-            <el_form_item label="用户名" prop="username">
-              <el_input
+            <el-form-item label="用户名" prop="username">
+              <el-input
                 v-model="registerForm.username"
                 placeholder="Username"
                 :prefix-icon="User"
               />
-            </el_form_item>
-            <el_form_item label="邮箱" prop="email">
-              <el_input v-model="registerForm.email" placeholder="Email" :prefix-icon="Postcard" />
-            </el_form_item>
-            <el_form_item label="密码" prop="password">
-              <el_input
+            </el-form-item>
+            <el-form-item label="邮箱" prop="email">
+              <el-input v-model="registerForm.email" placeholder="Email" :prefix-icon="Postcard" />
+            </el-form-item>
+            <el-form-item label="密码" prop="password">
+              <el-input
                 v-model="registerForm.password"
                 type="password"
                 placeholder="Password"
                 show-password
                 :prefix-icon="Lock"
               />
-            </el_form_item>
-            <el_form_item>
-              <el_button
+            </el-form-item>
+            <el-form-item>
+              <el-button
                 type="primary"
                 class="login-button"
                 :loading="isLoading"
                 @click="handleRegister(registerFormRef)"
               >
                 注 册
-              </el_button>
-            </el_form_item>
-          </el_form>
-        </el_tab_pane>
-      </el_tabs>
+              </el-button>
+            </el-form-item>
+          </el-form>
+        </el-tab-pane>
+      </el-tabs>
     </div>
   </div>
 </template>

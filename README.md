@@ -58,12 +58,3 @@ npm install @element-plus/icons-vue
 
 
 
-npm install @element-plus/icons-vue
-
-
-
-
-
-
-
-
