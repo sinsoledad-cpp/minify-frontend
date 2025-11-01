@@ -24,7 +24,7 @@ const isLoading = ref(true)
 const listState = reactive<ListLinksParams>({
   page: 1,
   pageSize: 10,
-  status: 'active' // 默认只看“有效”的链接
+  status: 'active', // 默认只看“有效”的链接
 })
 
 // --- 生命周期 ---
@@ -41,7 +41,7 @@ const fetchLinks = async () => {
   isLoading.value = true
   try {
     const response = await apiService.get<ApiResponse<ListLinksResponse>>('/links', {
-      params: listState
+      params: listState,
     })
     const data = response as unknown as ListLinksResponse
     linksList.value = data.links
@@ -78,8 +78,8 @@ const handleDelete = async (link: Link) => {
       {
         confirmButtonText: '确定删除',
         cancelButtonText: '取消',
-        type: 'warning' // 显示一个警告图标
-      }
+        type: 'warning', // 显示一个警告图标
+      },
     )
 
     // 2. (如果用户点击了“确定”) - 调用后端的 DELETE 接口
@@ -97,7 +97,7 @@ const handleDelete = async (link: Link) => {
     // 4. (关键) 删除成功，给用户提示
     ElMessage({
       type: 'success',
-      message: '删除成功'
+      message: '删除成功',
     })
 
     // 5. (关键) 重新获取链接列表，表格将自动更新
@@ -108,7 +108,7 @@ const handleDelete = async (link: Link) => {
     if (error === 'cancel') {
       ElMessage({
         type: 'info',
-        message: '已取消删除'
+        message: '已取消删除',
       })
       return
     }
@@ -135,8 +135,7 @@ const handleDelete = async (link: Link) => {
         </template>
       </el-table-column>
 
-      <el-table-column prop="originalUrl" label="原始链接" show-overflow-tooltip>
-      </el-table-column>
+      <el-table-column prop="originalUrl" label="原始链接" show-overflow-tooltip> </el-table-column>
 
       <el-table-column label="状态" width="100" align="center">
         <template #default="scope">
@@ -153,16 +152,9 @@ const handleDelete = async (link: Link) => {
 
       <el-table-column label="操作" width="150" align="center" fixed="right">
         <template #default="scope">
-          <el-button link type="primary" :icon="Edit" disabled>
-            编辑
-          </el-button>
+          <el-button link type="primary" :icon="Edit" disabled> 编辑 </el-button>
 
-          <el-button
-            link
-            type="danger"
-            :icon="Delete"
-            @click="handleDelete(scope.row)"
-          >
+          <el-button link type="danger" :icon="Delete" @click="handleDelete(scope.row)">
             删除
           </el-button>
         </template>
