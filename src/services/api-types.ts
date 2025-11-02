@@ -109,3 +109,42 @@ export interface ListAllLinksParams {
   status: string
   userId?: number // (新增) 0 或不填 = 所有用户
 }
+/**
+ * 匹配 shortener.api 的 GetAnalyticsRequest
+ * (用于 GET /analytics/:code 的 params)
+ */
+export interface GetAnalyticsParams {
+  startDate?: string
+  endDate?: string
+}
+
+/**
+ * 匹配 shortener.api 的 ClickPoint
+ */
+export interface ClickPoint {
+  time: string // e.g., "2025-10-31"
+  value: number
+}
+
+/**
+ * 匹配 shortener.api 的 StatItem
+ */
+export interface StatItem {
+  key: string
+  value: number
+}
+
+/**
+ * 匹配 shortener.api 的 GetAnalyticsResponse
+ * (这是我们页面的核心数据)
+ */
+export interface AnalyticsData {
+  shortCode: string
+  totalClicks: number
+  timeSeries: ClickPoint[]
+  topReferers: StatItem[]
+  topCountries: StatItem[]
+  topDevices: StatItem[]
+  topBrowsers: StatItem[]
+  topOS: StatItem[]
+}

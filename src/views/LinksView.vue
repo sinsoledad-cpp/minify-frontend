@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, nextTick } from 'vue' // (修改) 导入 nextTick
+import { useRouter } from 'vue-router'
 import {
   ElCard,
   ElTable,
@@ -21,7 +22,7 @@ import {
   ElSelect, // (新增)
   ElOption, // (新增)
 } from 'element-plus'
-import { Edit, Delete, Plus } from '@element-plus/icons-vue'
+import { Edit, Delete, Plus, DataLine } from '@element-plus/icons-vue'
 import apiService from '@/services/api'
 import type {
   ApiResponse,
@@ -34,6 +35,7 @@ import type {
 } from '@/services/api-types'
 import { formatTime } from '@/utils/time'
 
+const router = useRouter()
 // --- 状态定义 (表格和分页) ---
 const linksList = ref<Link[]>([])
 const totalLinks = ref(0)
@@ -239,6 +241,17 @@ const handleDelete = async (link: Link) => {
     isLoading.value = false
   }
 }
+
+const goToAnalytics = (code: string) => {
+  // 1. 提取 code
+  const shortCode = code.split('/').pop() || ''
+  if (!shortCode) {
+    ElMessage.error('无法解析短链接代码')
+    return
+  }
+  // 2. (关键) 跳转到普通用户的路由
+  router.push(`/analytics/${shortCode}`)
+}
 </script>
 
 <template>
@@ -291,8 +304,16 @@ const handleDelete = async (link: Link) => {
           {{ formatTime(scope.row.createdAt) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="150" align="center" fixed="right">
+      <el-table-column label="操作" width="200" align="center" fixed="right">
         <template #default="scope">
+          <el-button
+            link
+            type="primary"
+            :icon="DataLine"
+            @click="goToAnalytics(scope.row.shortCode)"
+          >
+            统计
+          </el-button>
           <el-button link type="primary" :icon="Edit" @click="handleEdit(scope.row)">
             编辑
           </el-button>

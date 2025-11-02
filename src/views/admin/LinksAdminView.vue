@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // (这是一个新文件)
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   ElCard,
   ElTable,
@@ -11,11 +12,14 @@ import {
   ElButton,
   ElSelect,
   ElOption,
+  ElMessage,
 } from 'element-plus'
 import apiService from '@/services/api'
 import type { ApiResponse, Link, ListLinksResponse, ListAllLinksParams } from '@/services/api-types'
 import { formatTime } from '@/utils/time'
+import { DataLine } from '@element-plus/icons-vue'
 
+const router = useRouter()
 // --- 状态定义 ---
 const linksList = ref<Link[]>([])
 const totalLinks = ref(0)
@@ -77,6 +81,17 @@ const handleStatusChange = () => {
   listState.page = 1
   fetchAdminLinks() // 调用 admin 接口
 }
+
+const goToAnalytics = (code: string) => {
+  // 1. 提取 code
+  const shortCode = code.split('/').pop() || ''
+  if (!shortCode) {
+    ElMessage.error('无法解析短链接代码')
+    return
+  }
+  // 2. (关键) 跳转到 *管理员* 的路由
+  router.push(`/admin/analytics/${shortCode}`)
+}
 </script>
 
 <template>
@@ -131,8 +146,16 @@ const handleStatusChange = () => {
         </template>
       </el-table-column>
 
-      <el-table-column label="操作" width="150" align="center" fixed="right">
-        <template #default>
+      <el-table-column label="操作" width="200" align="center" fixed="right">
+        <template #default="scope">
+          <el-button
+            link
+            type="primary"
+            :icon="DataLine"
+            @click="goToAnalytics(scope.row.shortCode)"
+          >
+            统计
+          </el-button>
           <el-button link type="primary" disabled>编辑</el-button>
           <el-button link type="danger" disabled>删除</el-button>
         </template>

@@ -9,6 +9,7 @@ import LinksView from '@/views/LinksView.vue'
 import UsersView from '@/views/admin/UsersView.vue'
 import LinksAdminView from '@/views/admin/LinksAdminView.vue'
 import { ElMessage } from 'element-plus'
+import AnalyticsDetailView from '@/views/AnalyticsDetailView.vue'
 // 创建路由实例
 const router = createRouter({
   // 告诉路由使用 H5 历史模式
@@ -45,6 +46,13 @@ const router = createRouter({
           component: LinksView, // <--- (新增) 指定组件
         },
         {
+          path: 'analytics/:code', // 普通用户的报表
+          name: 'analytics-detail',
+          component: AnalyticsDetailView,
+          // 我们将使用 useRoute() 来获取 code，所以不需要 props: true
+        },
+        // --- Admin 路由 ---
+        {
           path: 'admin/users', // 对应的完整 URL 是 /admin/users
           name: 'admin-users',
           component: UsersView, // <--- (新增) 指定组件
@@ -59,6 +67,14 @@ const router = createRouter({
           component: LinksAdminView,
           meta: {
             requiresAdmin: true, // (关键) 同样需要 Admin 权限
+          },
+        },
+        {
+          path: 'admin/analytics/:code', // 管理员的报表
+          name: 'admin-analytics-detail',
+          component: AnalyticsDetailView, // (关键) 复用同一个组件
+          meta: {
+            requiresAdmin: true,
           },
         },
         // ... 稍后我们会在这里添加 /links, /admin/users 等
