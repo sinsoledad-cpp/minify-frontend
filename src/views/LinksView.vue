@@ -11,7 +11,6 @@ import {
   // ElIcon,
   ElMessageBox,
   ElMessage,
-  // (新增) -----------------
   ElDialog,
   ElForm,
   ElFormItem,
@@ -19,20 +18,22 @@ import {
   ElSwitch,
   ElDatePicker,
   type FormInstance,
-  // (新增结束) ---------------
 } from 'element-plus'
-import { Edit, Delete } from '@element-plus/icons-vue'
+// (新增) 导入“加号”图标
+import { Edit, Delete, Plus } from '@element-plus/icons-vue'
 import apiService from '@/services/api'
 import type {
   ApiResponse,
   Link,
   ListLinksResponse,
   ListLinksParams,
-  UpdateLinkRequest, // (新增)
+  UpdateLinkRequest,
+  CreateLinkRequest, // (新增)
+  CreateLinkResponse, // (新增)
 } from '@/services/api-types'
 import { formatTime } from '@/utils/time'
 
-// --- 状态定义 (无变化) ---
+// --- 状态定义 (表格和分页) ---
 const linksList = ref<Link[]>([])
 const totalLinks = ref(0)
 const isLoading = ref(true)
@@ -42,27 +43,33 @@ const listState = reactive<ListLinksParams>({
   status: 'active',
 })
 
-// (新增) --- 编辑表单状态 ---
-const isEditDialogVisible = ref(false) // 控制“编辑”对话框是否显示
-const editFormRef = ref<FormInstance>() // “编辑”表单的引用
+// --- “编辑”表单状态 ---
+const isEditDialogVisible = ref(false)
+const editFormRef = ref<FormInstance>()
 const editForm = reactive({
-  // 我们需要 shortCode 来知道要更新哪个链接 (e.g., /links/abc)
   shortCode: '',
-  // 以下是 UpdateLinkRequest 中定义的字段
   originalUrl: '',
   isActive: true,
-  expirationTime: null as Date | null, // (关键) ElDatePicker 需要 Date 对象，而不是字符串
+  expirationTime: null as Date | null,
+})
+
+// (新增) --- “创建”表单状态 ---
+const isCreateDialogVisible = ref(false) // 控制“创建”对话框
+const createFormRef = ref<FormInstance>() // “创建”表单的引用
+const createForm = reactive<CreateLinkRequest>({
+  originalUrl: '',
+  customCode: '',
+  expiresIn: '', // (暂留) 简单起见，我们先不实现过期时间输入
 })
 // (新增结束) -----------------
 
-// --- 生命周期 (无变化) ---
+// --- 生命周期 ---
 onMounted(() => {
   fetchLinks()
 })
 
-// --- API 调用 (无变化) ---
+// --- API 调用 ---
 const fetchLinks = async () => {
-  // ... (此函数内容保持不变) ...
   isLoading.value = true
   try {
     const response = await apiService.get<ApiResponse<ListLinksResponse>>('/links', {
@@ -78,9 +85,9 @@ const fetchLinks = async () => {
   }
 }
 
-// --- 事件处理 (有新增) ---
+// --- 事件处理 ---
 
-// (分页) (无变化)
+// (分页)
 const handlePageChange = (newPage: number) => {
   listState.page = newPage
   fetchLinks()
@@ -92,79 +99,114 @@ const handleSizeChange = (newSize: number) => {
 }
 
 // (新增) --------------------------------------------
-// 处理“编辑”按钮点击
-const handleEdit = (link: Link) => {
-  // 1. 把当前行(link)的数据“复制”到 editForm 中
-  //    (注意：我们必须复制，而不是直接引用，否则会“污染”表格数据)
-  editForm.shortCode = link.shortCode
-  editForm.originalUrl = link.originalUrl
-  editForm.isActive = link.isActive
-  // 2. (关键) 将后端返回的 expirationTime 字符串 转换为 Date 对象
-  if (link.expirationTime) {
-    editForm.expirationTime = new Date(link.expirationTime)
-  } else {
-    editForm.expirationTime = null
-  }
+// 打开“创建”对话框
+const openCreateDialog = () => {
+  // 1. (关键) 重置表单内容
+  createForm.originalUrl = ''
+  createForm.customCode = ''
+  createForm.expiresIn = ''
 
-  // 3. 打开“编辑”对话框
-  isEditDialogVisible.value = true
+  // 2. (可选) 重置校验状态
+  //    我们使用 nextTick 来确保表单 DOM 已经渲染完毕
+  //    (因为 v-if="isCreateDialogVisible")
+  isCreateDialogVisible.value = true
+  if (createFormRef.value) {
+    createFormRef.value.clearValidate()
+  }
 }
 
-// (新增) 提交“编辑”表单
-const submitEdit = async (formEl: FormInstance | undefined) => {
+// (新增) 提交“创建”表单
+const submitCreate = async (formEl: FormInstance | undefined) => {
   if (!formEl) return
 
-  // 1. 校验表单
   await formEl.validate(async (valid) => {
     if (valid) {
-      // 2. 准备要发送到后端的数据 (UpdateLinkRequest)
-      const updateData: UpdateLinkRequest = {
-        originalUrl: editForm.originalUrl,
-        isActive: editForm.isActive,
-        // (关键) 将 Date 对象 转换回 后端需要的 ISO 字符串
-        // 如果用户清空了日期 (null)，就发送 null
-        expirationTime: editForm.expirationTime ? editForm.expirationTime.toISOString() : null,
-      }
+      isLoading.value = true // 使用表格的加载状态
 
-      // 3. 从 shortCode (e.g., "http://.../abc") 中提取 code ("abc")
-      const code = editForm.shortCode.split('/').pop() || ''
-      if (!code) {
-        ElMessage.error('无法获取链接代码')
-        return
+      // 1. 准备要发送到后端的数据
+      const createData: CreateLinkRequest = {
+        originalUrl: createForm.originalUrl,
+        // (可选) 如果 customCode 是空字符串，就不发送这个字段
+        customCode: createForm.customCode || undefined,
+        expiresIn: createForm.expiresIn || undefined,
       }
-
-      isLoading.value = true // (可选) 在保存时也显示加载状态
 
       try {
-        // 4. (关键) 调用 PUT /links/:code 接口
-        await apiService.put(`/links/${code}`, updateData)
+        // 2. (关键) 调用 POST /links 接口
+        await apiService.post<ApiResponse<CreateLinkResponse>>('/links', createData)
 
-        // 5. 成功后的收尾工作
-        isEditDialogVisible.value = false // (a) 关闭对话框
-        ElMessage.success('更新成功') // (b) 提示成功
-        fetchLinks() // (c) 刷新表格！
+        // 3. 成功后的收尾工作
+        isCreateDialogVisible.value = false // (a) 关闭对话框
+        ElMessage.success('创建成功') // (b) 提示成功
+
+        // (c) 刷新表格，并跳转到第一页查看最新数据
+        listState.page = 1
+        fetchLinks()
       } catch (error) {
-        // (api.ts 拦截器 会自动弹窗)
-        console.error('更新失败:', error)
+        // api.ts 拦截器 会自动弹窗 (例如 "自定义短码已存在")
+        console.error('创建失败:', error)
         isLoading.value = false // 确保失败时停止加载
       }
     }
   })
 }
 
-// (新增) 取消“编辑”
+// (新增) 取消“创建”
+const handleCancelCreate = () => {
+  isCreateDialogVisible.value = false
+}
+// (新增结束) -----------------------------------------
+
+// --- “编辑”相关 (无变化) ---
+const handleEdit = (link: Link) => {
+  editForm.shortCode = link.shortCode
+  editForm.originalUrl = link.originalUrl
+  editForm.isActive = link.isActive
+  if (link.expirationTime) {
+    editForm.expirationTime = new Date(link.expirationTime)
+  } else {
+    editForm.expirationTime = null
+  }
+  isEditDialogVisible.value = true
+}
+
+const submitEdit = async (formEl: FormInstance | undefined) => {
+  if (!formEl) return
+  await formEl.validate(async (valid) => {
+    if (valid) {
+      const updateData: UpdateLinkRequest = {
+        originalUrl: editForm.originalUrl,
+        isActive: editForm.isActive,
+        expirationTime: editForm.expirationTime ? editForm.expirationTime.toISOString() : null,
+      }
+      const code = editForm.shortCode.split('/').pop() || ''
+      if (!code) {
+        ElMessage.error('无法获取链接代码')
+        return
+      }
+      isLoading.value = true
+      try {
+        await apiService.put(`/links/${code}`, updateData)
+        isEditDialogVisible.value = false
+        ElMessage.success('更新成功')
+        fetchLinks()
+      } catch (error) {
+        console.error('更新失败:', error)
+        isLoading.value = false
+      }
+    }
+  })
+}
+
 const handleCancelEdit = () => {
   isEditDialogVisible.value = false
-  // (可选) 清理表单验证状态
   if (editFormRef.value) {
     editFormRef.value.clearValidate()
   }
 }
-// (新增结束) -----------------------------------------
 
-// 处理“删除”按钮点击 (无变化)
+// --- “删除”相关 (无变化) ---
 const handleDelete = async (link: Link) => {
-  // ... (此函数内容保持不变) ...
   try {
     await ElMessageBox.confirm(
       `确定要删除短链接 ${link.shortCode.replace('http://', '').replace('https://', '')} 吗？
@@ -201,7 +243,12 @@ const handleDelete = async (link: Link) => {
 <template>
   <el-card shadow="never" v-loading="isLoading">
     <div class="filter-bar">
-      <span>链接状态: {{ listState.status }}</span>
+      <div class="filter-bar-left">
+        <span>链接状态: {{ listState.status }}</span>
+      </div>
+      <div class="filter-bar-right">
+        <el-button type="primary" :icon="Plus" @click="openCreateDialog"> 创建链接 </el-button>
+      </div>
     </div>
 
     <el-table :data="linksList" style="width: 100%" empty-text="没有找到链接">
@@ -224,13 +271,11 @@ const handleDelete = async (link: Link) => {
           {{ formatTime(scope.row.createdAt) }}
         </template>
       </el-table-column>
-
       <el-table-column label="操作" width="150" align="center" fixed="right">
         <template #default="scope">
           <el-button link type="primary" :icon="Edit" @click="handleEdit(scope.row)">
             编辑
           </el-button>
-
           <el-button link type="danger" :icon="Delete" @click="handleDelete(scope.row)">
             删除
           </el-button>
@@ -272,7 +317,6 @@ const handleDelete = async (link: Link) => {
       >
         <el-input v-model="editForm.originalUrl" placeholder="https://..." />
       </el-form-item>
-
       <el-form-item label="过期时间 (Expiration Time)" prop="expirationTime">
         <el-date-picker
           v-model="editForm.expirationTime"
@@ -282,12 +326,10 @@ const handleDelete = async (link: Link) => {
           style="width: 100%"
         />
       </el-form-item>
-
       <el-form-item label="是否激活 (Is Active)" prop="isActive">
         <el-switch v-model="editForm.isActive" />
       </el-form-item>
     </el-form>
-
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="handleCancelEdit">取 消</el-button>
@@ -295,12 +337,53 @@ const handleDelete = async (link: Link) => {
       </div>
     </template>
   </el-dialog>
+
+  <el-dialog
+    v-model="isCreateDialogVisible"
+    title="创建新链接"
+    width="600"
+    :close-on-click-modal="false"
+  >
+    <el-form
+      v-if="isCreateDialogVisible"
+      ref="createFormRef"
+      :model="createForm"
+      label-position="top"
+      label-width="auto"
+    >
+      <el-form-item
+        label="原始长链接 (Original URL)"
+        prop="originalUrl"
+        :rules="[{ required: true, message: '请输入原始链接', trigger: 'blur' }]"
+      >
+        <el-input
+          v-model="createForm.originalUrl"
+          placeholder="https://example.com/a-very-long-url-to-shorten"
+        />
+      </el-form-item>
+
+      <el-form-item label="自定义短码 (Custom Code) - 可选" prop="customCode">
+        <el-input v-model="createForm.customCode" placeholder="例如: mylink (留空将自动生成)" />
+      </el-form-item>
+    </el-form>
+
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="handleCancelCreate">取 消</el-button>
+        <el-button type="primary" @click="submitCreate(createFormRef)"> 创 建 </el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 
 <style scoped>
-/* (样式无变化) */
+/* (有修改) */
 .filter-bar {
   margin-bottom: 20px;
+  /* (新增) 使用 flex 布局，让按钮自动到最右边 */
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 .pagination-bar {
   display: flex;

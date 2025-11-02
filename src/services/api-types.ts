@@ -82,3 +82,19 @@ export interface UpdateLinkRequest {
   isActive?: boolean
   expirationTime?: string | null // string (ISO 8601) 或 null (设为永不过期)
 }
+/**
+ * 匹配 shortener.api 的 CreateLinkRequest
+ * (用于 POST /links)
+ */
+export interface CreateLinkRequest {
+  originalUrl: string
+  customCode?: string // 选填
+  expiresIn?: string // 选填 (e.g., "7d", "1h")
+}
+
+/**
+ * 匹配 shortener.api 的 CreateLinkResponse
+ */
+export interface CreateLinkResponse {
+  link: Link // 后端返回的是一个完整的 Link 对象
+}
