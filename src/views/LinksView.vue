@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, nextTick } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue' // (修改) 导入 nextTick
 import {
   ElCard,
   ElTable,
@@ -18,6 +18,8 @@ import {
   ElSwitch,
   ElDatePicker,
   type FormInstance,
+  ElSelect, // (新增)
+  ElOption, // (新增)
 } from 'element-plus'
 import { Edit, Delete, Plus } from '@element-plus/icons-vue'
 import apiService from '@/services/api'
@@ -42,6 +44,15 @@ const listState = reactive<ListLinksParams>({
   status: 'active',
 })
 
+// (新增) --- 筛选器选项 ---
+const statusOptions = [
+  { value: 'active', label: '有效' },
+  { value: 'inactive', label: '禁用' },
+  { value: 'expired', label: '已过期' },
+  { value: 'all', label: '全部' },
+]
+// (新增结束) -----------------
+
 // --- “编辑”表单状态 ---
 const isEditDialogVisible = ref(false)
 const editFormRef = ref<FormInstance>()
@@ -58,7 +69,7 @@ const createFormRef = ref<FormInstance>()
 const createForm = reactive<CreateLinkRequest>({
   originalUrl: '',
   customCode: '',
-  expiresIn: '', // (我们将使用这个)
+  expiresIn: '',
 })
 
 // --- 生命周期 ---
@@ -71,7 +82,7 @@ const fetchLinks = async () => {
   isLoading.value = true
   try {
     const response = await apiService.get<ApiResponse<ListLinksResponse>>('/links', {
-      params: listState,
+      params: listState, // (关键) listState 现在包含了 status
     })
     const data = response as unknown as ListLinksResponse
     linksList.value = data.links
@@ -96,14 +107,22 @@ const handleSizeChange = (newSize: number) => {
   fetchLinks()
 }
 
+// (新增) --------------------------------------------
+// 处理“状态筛选”改变
+const handleStatusChange = () => {
+  // 当状态改变时，我们总是重置回第 1 页
+  listState.page = 1
+  // 重新获取数据
+  fetchLinks()
+}
+// (新增结束) -----------------------------------------
+
 // --- “创建”相关 ---
 const openCreateDialog = () => {
   createForm.originalUrl = ''
   createForm.customCode = ''
-  createForm.expiresIn = '' // (确保重置)
-
+  createForm.expiresIn = ''
   isCreateDialogVisible.value = true
-  // (修改) 使用 nextTick 来确保 DOM 更新后再清除校验
   nextTick(() => {
     if (createFormRef.value) {
       createFormRef.value.clearValidate()
@@ -113,24 +132,18 @@ const openCreateDialog = () => {
 
 const submitCreate = async (formEl: FormInstance | undefined) => {
   if (!formEl) return
-
   await formEl.validate(async (valid) => {
     if (valid) {
       isLoading.value = true
-
       const createData: CreateLinkRequest = {
         originalUrl: createForm.originalUrl,
         customCode: createForm.customCode || undefined,
-        // (修改) 确保 expiresIn 字段被正确传递
         expiresIn: createForm.expiresIn || undefined,
       }
-
       try {
         await apiService.post<ApiResponse<CreateLinkResponse>>('/links', createData)
-
         isCreateDialogVisible.value = false
         ElMessage.success('创建成功')
-
         listState.page = 1
         fetchLinks()
       } catch (error) {
@@ -145,7 +158,7 @@ const handleCancelCreate = () => {
   isCreateDialogVisible.value = false
 }
 
-// --- “编辑”相关 (无变化) ---
+// --- “编辑”相关 ---
 const handleEdit = (link: Link) => {
   editForm.shortCode = link.shortCode
   editForm.originalUrl = link.originalUrl
@@ -193,7 +206,7 @@ const handleCancelEdit = () => {
   }
 }
 
-// --- “删除”相关 (无变化) ---
+// --- “删除”相关 ---
 const handleDelete = async (link: Link) => {
   try {
     await ElMessageBox.confirm(
@@ -232,7 +245,19 @@ const handleDelete = async (link: Link) => {
   <el-card shadow="never" v-loading="isLoading">
     <div class="filter-bar">
       <div class="filter-bar-left">
-        <span>链接状态: {{ listState.status }}</span>
+        <el-select
+          v-model="listState.status"
+          placeholder="筛选状态"
+          style="width: 120px"
+          @change="handleStatusChange"
+        >
+          <el-option
+            v-for="item in statusOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
       </div>
       <div class="filter-bar-right">
         <el-button type="primary" :icon="Plus" @click="openCreateDialog"> 创建链接 </el-button>
@@ -250,10 +275,17 @@ const handleDelete = async (link: Link) => {
       <el-table-column prop="originalUrl" label="原始链接" show-overflow-tooltip />
       <el-table-column label="状态" width="100" align="center">
         <template #default="scope">
-          <el-tag v-if="scope.row.isActive" type="success">有效</el-tag>
-          <el-tag v-else type="info">禁用</el-tag>
+          <el-tag v-if="!scope.row.isActive" type="info">禁用</el-tag>
+          <el-tag
+            v-else-if="scope.row.expirationTime && new Date(scope.row.expirationTime) < new Date()"
+            type="warning"
+          >
+            已过期
+          </el-tag>
+          <el-tag v-else type="success">有效</el-tag>
         </template>
       </el-table-column>
+
       <el-table-column label="创建时间" width="180" align="center">
         <template #default="scope">
           {{ formatTime(scope.row.createdAt) }}
@@ -344,24 +376,15 @@ const handleDelete = async (link: Link) => {
         prop="originalUrl"
         :rules="[{ required: true, message: '请输入原始链接', trigger: 'blur' }]"
       >
-        <el-input
-          v-model="createForm.originalUrl"
-          placeholder="https://example.com/a-very-long-url-to-shorten"
-        />
+        <el-input v-model="createForm.originalUrl" placeholder="https://..." />
       </el-form-item>
-
       <el-form-item label="自定义短码 (Custom Code) - 可选" prop="customCode">
-        <el-input v-model="createForm.customCode" placeholder="例如: mylink (留空将自动生成)" />
+        <el-input v-model="createForm.customCode" placeholder="例如: mylink" />
       </el-form-item>
-
       <el-form-item label="过期时间 (Expires In) - 可选" prop="expiresIn">
-        <el-input
-          v-model="createForm.expiresIn"
-          placeholder="例如: 7d (7天), 1h (1小时), 30m (30分钟)"
-        />
+        <el-input v-model="createForm.expiresIn" placeholder="例如: 7d (7天), 1h (1小时)" />
       </el-form-item>
     </el-form>
-
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="handleCancelCreate">取 消</el-button>
