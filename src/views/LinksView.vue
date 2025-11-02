@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, nextTick } from 'vue'
 import {
   ElCard,
   ElTable,
@@ -19,7 +19,6 @@ import {
   ElDatePicker,
   type FormInstance,
 } from 'element-plus'
-// (新增) 导入“加号”图标
 import { Edit, Delete, Plus } from '@element-plus/icons-vue'
 import apiService from '@/services/api'
 import type {
@@ -28,8 +27,8 @@ import type {
   ListLinksResponse,
   ListLinksParams,
   UpdateLinkRequest,
-  CreateLinkRequest, // (新增)
-  CreateLinkResponse, // (新增)
+  CreateLinkRequest,
+  CreateLinkResponse,
 } from '@/services/api-types'
 import { formatTime } from '@/utils/time'
 
@@ -53,15 +52,14 @@ const editForm = reactive({
   expirationTime: null as Date | null,
 })
 
-// (新增) --- “创建”表单状态 ---
-const isCreateDialogVisible = ref(false) // 控制“创建”对话框
-const createFormRef = ref<FormInstance>() // “创建”表单的引用
+// --- “创建”表单状态 ---
+const isCreateDialogVisible = ref(false)
+const createFormRef = ref<FormInstance>()
 const createForm = reactive<CreateLinkRequest>({
   originalUrl: '',
   customCode: '',
-  expiresIn: '', // (暂留) 简单起见，我们先不实现过期时间输入
+  expiresIn: '', // (我们将使用这个)
 })
-// (新增结束) -----------------
 
 // --- 生命周期 ---
 onMounted(() => {
@@ -98,64 +96,54 @@ const handleSizeChange = (newSize: number) => {
   fetchLinks()
 }
 
-// (新增) --------------------------------------------
-// 打开“创建”对话框
+// --- “创建”相关 ---
 const openCreateDialog = () => {
-  // 1. (关键) 重置表单内容
   createForm.originalUrl = ''
   createForm.customCode = ''
-  createForm.expiresIn = ''
+  createForm.expiresIn = '' // (确保重置)
 
-  // 2. (可选) 重置校验状态
-  //    我们使用 nextTick 来确保表单 DOM 已经渲染完毕
-  //    (因为 v-if="isCreateDialogVisible")
   isCreateDialogVisible.value = true
-  if (createFormRef.value) {
-    createFormRef.value.clearValidate()
-  }
+  // (修改) 使用 nextTick 来确保 DOM 更新后再清除校验
+  nextTick(() => {
+    if (createFormRef.value) {
+      createFormRef.value.clearValidate()
+    }
+  })
 }
 
-// (新增) 提交“创建”表单
 const submitCreate = async (formEl: FormInstance | undefined) => {
   if (!formEl) return
 
   await formEl.validate(async (valid) => {
     if (valid) {
-      isLoading.value = true // 使用表格的加载状态
+      isLoading.value = true
 
-      // 1. 准备要发送到后端的数据
       const createData: CreateLinkRequest = {
         originalUrl: createForm.originalUrl,
-        // (可选) 如果 customCode 是空字符串，就不发送这个字段
         customCode: createForm.customCode || undefined,
+        // (修改) 确保 expiresIn 字段被正确传递
         expiresIn: createForm.expiresIn || undefined,
       }
 
       try {
-        // 2. (关键) 调用 POST /links 接口
         await apiService.post<ApiResponse<CreateLinkResponse>>('/links', createData)
 
-        // 3. 成功后的收尾工作
-        isCreateDialogVisible.value = false // (a) 关闭对话框
-        ElMessage.success('创建成功') // (b) 提示成功
+        isCreateDialogVisible.value = false
+        ElMessage.success('创建成功')
 
-        // (c) 刷新表格，并跳转到第一页查看最新数据
         listState.page = 1
         fetchLinks()
       } catch (error) {
-        // api.ts 拦截器 会自动弹窗 (例如 "自定义短码已存在")
         console.error('创建失败:', error)
-        isLoading.value = false // 确保失败时停止加载
+        isLoading.value = false
       }
     }
   })
 }
 
-// (新增) 取消“创建”
 const handleCancelCreate = () => {
   isCreateDialogVisible.value = false
 }
-// (新增结束) -----------------------------------------
 
 // --- “编辑”相关 (无变化) ---
 const handleEdit = (link: Link) => {
@@ -365,6 +353,13 @@ const handleDelete = async (link: Link) => {
       <el-form-item label="自定义短码 (Custom Code) - 可选" prop="customCode">
         <el-input v-model="createForm.customCode" placeholder="例如: mylink (留空将自动生成)" />
       </el-form-item>
+
+      <el-form-item label="过期时间 (Expires In) - 可选" prop="expiresIn">
+        <el-input
+          v-model="createForm.expiresIn"
+          placeholder="例如: 7d (7天), 1h (1小时), 30m (30分钟)"
+        />
+      </el-form-item>
     </el-form>
 
     <template #footer>
@@ -377,10 +372,9 @@ const handleDelete = async (link: Link) => {
 </template>
 
 <style scoped>
-/* (有修改) */
+/* (样式无变化) */
 .filter-bar {
   margin-bottom: 20px;
-  /* (新增) 使用 flex 布局，让按钮自动到最右边 */
   display: flex;
   justify-content: space-between;
   align-items: center;
