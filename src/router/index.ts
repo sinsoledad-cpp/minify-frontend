@@ -7,6 +7,7 @@ import LoginView from '@/views/LoginView.vue'
 import DashboardView from '@/views/DashboardView.vue'
 import LinksView from '@/views/LinksView.vue'
 import UsersView from '@/views/admin/UsersView.vue'
+import LinksAdminView from '@/views/admin/LinksAdminView.vue'
 import { ElMessage } from 'element-plus'
 // 创建路由实例
 const router = createRouter({
@@ -50,6 +51,14 @@ const router = createRouter({
           // (可选) 路由元信息，用于路由守卫
           meta: {
             requiresAdmin: true,
+          },
+        },
+        {
+          path: 'admin/links', // 这是全站链接管理
+          name: 'admin-links',
+          component: LinksAdminView,
+          meta: {
+            requiresAdmin: true, // (关键) 同样需要 Admin 权限
           },
         },
         // ... 稍后我们会在这里添加 /links, /admin/users 等

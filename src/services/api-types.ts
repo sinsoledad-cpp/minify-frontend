@@ -98,3 +98,14 @@ export interface CreateLinkRequest {
 export interface CreateLinkResponse {
   link: Link // 后端返回的是一个完整的 Link 对象
 }
+
+/**
+ * 匹配 shortener.api 的 ListAllLinksRequest
+ * (用于 GET /admin/links)
+ */
+export interface ListAllLinksParams {
+  page: number
+  pageSize: number
+  status: string
+  userId?: number // (新增) 0 或不填 = 所有用户
+}

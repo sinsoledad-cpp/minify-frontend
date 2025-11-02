@@ -2,7 +2,7 @@
 import { RouterView, useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
-import { ArrowDown, House, Link } from '@element-plus/icons-vue' // (新增) 导入图标
+import { ArrowDown, House, Link, User, Menu } from '@element-plus/icons-vue' // (新增) 导入图标
 import { computed } from 'vue'
 
 const userStore = useUserStore()
@@ -75,8 +75,13 @@ const handleLogout = () => {
           </el-menu-item>
 
           <el-menu-item v-if="userStore.isAdmin" index="/admin/users">
-            <el-icon><UserFilled /></el-icon>
+            <el-icon><User /></el-icon>
             <span>用户管理</span>
+          </el-menu-item>
+
+          <el-menu-item v-if="userStore.isAdmin" index="/admin/links">
+            <el-icon><Menu /></el-icon>
+            <span>全站链接 (Admin)</span>
           </el-menu-item>
         </el-menu>
       </el-aside>
