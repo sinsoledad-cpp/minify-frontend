@@ -61,8 +61,8 @@ const fetchAnalytics = async () => {
   isLoading.value = true
 
   const apiUrl = isAdminRoute.value
-    ? `/admin/analytics/${linkCode.value}`
-    : `/analytics/${linkCode.value}`
+    ? `/admin-shortener/analytics/${linkCode.value}`
+    : `/shortener/analytics/${linkCode.value}`
 
   const params: GetAnalyticsParams = {}
   if (dateRange.value) {

@@ -51,9 +51,12 @@ const fetchAdminLinks = async () => {
   isLoading.value = true
   try {
     // 1. (关键) 调用 /admin/links 接口
-    const response = await apiService.get<ApiResponse<ListLinksResponse>>('/admin/links', {
-      params: listState,
-    })
+    const response = await apiService.get<ApiResponse<ListLinksResponse>>(
+      '/admin-shortener/links',
+      {
+        params: listState,
+      },
+    )
     const data = response as unknown as ListLinksResponse
     linksList.value = data.links
     totalLinks.value = data.total

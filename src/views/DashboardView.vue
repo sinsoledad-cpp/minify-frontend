@@ -22,7 +22,7 @@ const fetchDashboardData = async () => {
     // 4. 调用后端的 /analytics/dashboard 接口
     //    (api.ts 拦截器会自动附加 token)
     const response = await apiService.get<ApiResponse<DashboardData>>(
-      '/analytics/dashboard' // 对应 shortener.api
+      '/shortener/analytics/dashboard', // 对应 shortener.api
     )
 
     // 5. (关键) 使用类型断言来获取拦截器剥离后的数据
@@ -62,20 +62,14 @@ const fetchDashboardData = async () => {
     <el-col :span="8">
       <el-card shadow="hover" v-loading="isLoading">
         <div v-if="dashboardData?.topLink">
-          <div class="el-statistic__title">
-            热门链接 (Top Link)
-          </div>
+          <div class="el-statistic__title">热门链接 (Top Link)</div>
           <div class="el-statistic__value">
             {{ dashboardData.topLink.shortCode }}
           </div>
         </div>
         <div v-else>
-          <div class="el-statistic__title">
-            热门链接 (Top Link)
-          </div>
-          <div class="el-statistic__value">
-            (暂无数据)
-          </div>
+          <div class="el-statistic__title">热门链接 (Top Link)</div>
+          <div class="el-statistic__value">(暂无数据)</div>
         </div>
       </el-card>
     </el-col>

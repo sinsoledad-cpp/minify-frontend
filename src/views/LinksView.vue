@@ -83,7 +83,7 @@ onMounted(() => {
 const fetchLinks = async () => {
   isLoading.value = true
   try {
-    const response = await apiService.get<ApiResponse<ListLinksResponse>>('/links', {
+    const response = await apiService.get<ApiResponse<ListLinksResponse>>('/shortener/links', {
       params: listState, // (关键) listState 现在包含了 status
     })
     const data = response as unknown as ListLinksResponse
@@ -143,7 +143,7 @@ const submitCreate = async (formEl: FormInstance | undefined) => {
         expiresIn: createForm.expiresIn || undefined,
       }
       try {
-        await apiService.post<ApiResponse<CreateLinkResponse>>('/links', createData)
+        await apiService.post<ApiResponse<CreateLinkResponse>>('/shortener/links', createData)
         isCreateDialogVisible.value = false
         ElMessage.success('创建成功')
         listState.page = 1
@@ -189,7 +189,7 @@ const submitEdit = async (formEl: FormInstance | undefined) => {
       }
       isLoading.value = true
       try {
-        await apiService.put(`/links/${code}`, updateData)
+        await apiService.put(`/shortener/links/${code}`, updateData)
         isEditDialogVisible.value = false
         ElMessage.success('更新成功')
         fetchLinks()
@@ -223,7 +223,7 @@ const handleDelete = async (link: Link) => {
     )
     const code = link.shortCode.split('/').pop() || ''
     isLoading.value = true
-    await apiService.delete(`/links/${code}`)
+    await apiService.delete(`/shortener/links/${code}`)
     ElMessage({
       type: 'success',
       message: '删除成功',
